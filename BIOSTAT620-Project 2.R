@@ -120,7 +120,7 @@ df_imputed <- na.omit(df_imputed)
 # We didn't remove too many observations
 
 
-# 29 observations left
+# 29 ID left
 
 
 
