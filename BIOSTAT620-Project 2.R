@@ -7,6 +7,8 @@ library(dplyr)
 library(nlme)
 library(lubridate)
 library(mice)
+library(texreg)
+library(table1)
 
 # load the data
 df <- read_excel("Fulldata_620W24_Project2.xlsx",sheet = "screentime",
