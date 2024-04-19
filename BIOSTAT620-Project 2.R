@@ -103,7 +103,7 @@ df_clean <- df_clean %>%
 table(df_clean$sex)
 
 
-df_clean_select <- df_clean %>% select(pseudo_ID,Total.ST.min,
+df_clean_select <- df_clean %>% dplyr::select(pseudo_ID,Total.ST.min,
                                        Pickups,Treatment,age,sex,apps,
                                        devices,`procrastination score`)
 
