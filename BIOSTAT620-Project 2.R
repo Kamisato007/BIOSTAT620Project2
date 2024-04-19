@@ -125,3 +125,57 @@ df_imputed <- na.omit(df_imputed)
 
 
 
+
+# 2024-4-19 Updated Below
+
+
+# Create an indicator that represents before and after the intervention
+df_imputed <- df_imputed %>% mutate(after_interv_ind= ifelse(Date>"2024-03-26",
+                                                             1,0))
+
+
+df_imputed <- df_imputed %>%
+  mutate(sex = recode(sex,
+                      `0` = "Female", 
+                      `1` = "Male"))
+
+
+df_A <- df_imputed %>% filter(Treatment == "A")
+df_B <- df_imputed %>% filter(Treatment == "B")
+
+
+model1 <- lme(fixed = Total.ST.min ~ after_interv_ind*sex + 
+                after_interv_ind*devices + 
+                after_interv_ind*P_Score, 
+             random = ~ 1 | pseudo_ID,
+             data = df_A,
+             method = "REML")
+summary(model1)
+
+
+model2 <- lme(fixed = Pickups ~ after_interv_ind*sex + 
+                after_interv_ind*devices + after_interv_ind*P_Score, 
+              random = ~ 1 | pseudo_ID,
+              data = df_B,
+              method = "REML")
+summary(model2)
+
+
+# Generate Table 1
+new_column_names <- c("pseudo_ID","Total Screen Time (mins)","Pickups",
+                      "Treatment","Age","Sex","Apps","Devices",
+                      "Procrastination Score","Date","after_interv_ind")
+df_table1 <- df_imputed
+colnames(df_table1) <- new_column_names
+
+df_table1 <- df_table1 %>%
+  mutate(Treatment = recode(Treatment,
+                      "A" = "Treatment A", 
+                      "B" = "Treatment B"))
+
+
+
+table1(~ `Total Screen Time (mins)`+ Pickups+ Sex + 
+         Devices + `Procrastination Score` | Treatment, data=df_table1)
+
+
