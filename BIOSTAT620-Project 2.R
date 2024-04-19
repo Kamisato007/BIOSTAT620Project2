@@ -181,3 +181,97 @@ table1(~ `Total Screen Time (mins)`+ Pickups+ Sex +
          Devices + `Procrastination Score` | Treatment, data=df_table1)
 
 
+
+
+
+#----------------------------------------------------------------------
+# Objective 2: Which treatment is more effective? (Ordinal Logistic Regression)
+
+df_clean_filtered <- df_imputed %>%
+  filter(Date >= as.Date("2024-03-27") & Date <= as.Date("2024-04-02"))
+
+# Input compliance
+df_clean_filtered <- df_clean_filtered %>%
+  mutate(compliance = case_when(
+    Treatment == "A" & Total.ST.min <= 200 ~ 1,
+    Treatment == "B" & Pickups <= 50 ~ 1,
+    TRUE ~ 0  # failure
+  ))
+
+
+# Next...
+
+# 1. Calculate the cumulative `compliance` for each ID
+compliance_sums <- df_clean_filtered %>%
+  group_by(pseudo_ID) %>%
+  summarise(total_compliance = sum(compliance, na.rm = TRUE))  # Use na.rm = TRUE to ignore NA values
+
+# 2. Add the cumulative values to the df_imputed dataset
+df_imputed <- df_imputed %>%
+  left_join(compliance_sums, by = "pseudo_ID") %>%
+  mutate(total_compliance = if_else(is.na(total_compliance), 0, total_compliance))  # Ensure NAs are replaced with 0
+
+# Check the updated df_imputed dataset
+print(df_imputed)
+
+# MASS for ordinal logistic
+library(MASS)
+
+# Calculate means and variances for each ID
+df_stats <- df_imputed %>%
+  group_by(pseudo_ID) %>%
+  summarise(
+    mean_total_st = mean(Total.ST.min, na.rm = TRUE),  # Calculate mean of Total.ST.min
+    var_total_st = var(Total.ST.min, na.rm = TRUE),    # Calculate variance of Total.ST.min
+    mean_pickups = mean(Pickups, na.rm = TRUE),        # Calculate mean of Pickups
+    var_pickups = var(Pickups, na.rm = TRUE)           # Calculate variance of Pickups
+  )
+
+# Merge the statistics back into the main dataset
+df_imputed <- df_imputed %>%
+  left_join(df_stats, by = "pseudo_ID")
+
+# Split data into two treatment groups
+df_treatment_a <- df_imputed %>% filter(Treatment == "A")
+df_treatment_b <- df_imputed %>% filter(Treatment == "B")
+
+# Baseline data
+df_base <- df_imputed %>%
+  group_by(pseudo_ID) %>%
+  slice(1) %>%
+  ungroup()
+
+hist(df_base$total_compliance)
+# Since it is a RCT, we do not need to split groups
+df_base$TreatmentA <- ifelse(df_base$Treatment == "A", 1, 0)
+df_base$Treatment <- as.factor(df_base$Treatment)
+
+m1 <- polr(as.factor(total_compliance) ~ Treatment + factor(sex) + devices + P_Score,
+           data = df_base, Hess=TRUE)
+
+summary(m1)
+
+summary_m1 <- summary(m1)
+
+## store table
+(ctable <- coef(summary(m1)))
+
+## calculate and store p values
+p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) * 2
+
+## combined table
+(ctable <- cbind(ctable, "p value" = p))
+
+
+# 95%CI
+
+(ci <- confint(m1)) # default method gives profiled CIs
+
+# Interpretation
+
+## odds ratios and confidence intervals
+exp(coef(m1))
+exp(confint(m1))
+
+
+#------------------------------------------------------------------------------
