@@ -1,4 +1,4 @@
-setwd("C:/Users/kamis/Documents/Winter 2024/BIOSTAT620/Project 2")
+setwd("/Users/shichongwei/R/620")
 
 
 # load the library
@@ -38,7 +38,7 @@ hm_to_min <- function(hm){
   mn=as.numeric(strsplit(splt[2],"m")[[1]][1])
   return (60*hr+mn) }) ) 
 }
-                                                                                                                                 
+
 
 Total_not_match <- df[which(!hm_to_min(df$Total.ST) == df$Total.ST.min),]
 Social_not_match <- df[which(!hm_to_min(df$Social.ST) == df$Social.ST.min),]
@@ -104,8 +104,8 @@ table(df_clean$sex)
 
 
 df_clean_select <- df_clean %>% dplyr::select(pseudo_ID,Total.ST.min,
-                                       Pickups,Treatment,age,sex,apps,
-                                       devices,`procrastination score`)
+                                              Pickups,Treatment,age,sex,apps,
+                                              devices,`procrastination score`)
 
 # Rename the procrastination score
 colnames(df_clean_select)[9]<- "P_Score"
@@ -149,9 +149,9 @@ df_B <- df_imputed %>% filter(Treatment == "B")
 model1 <- lme(fixed = Total.ST.min ~ after_interv_ind*sex + 
                 after_interv_ind*devices + 
                 after_interv_ind*P_Score, 
-             random = ~ 1 | pseudo_ID,
-             data = df_A,
-             method = "REML")
+              random = ~ 1 | pseudo_ID,
+              data = df_A,
+              method = "REML")
 summary(model1)
 
 
@@ -162,7 +162,21 @@ model2 <- lme(fixed = Pickups ~ after_interv_ind*sex +
               method = "REML")
 summary(model2)
 
+model3 <- lme(fixed = Pickups ~ after_interv_ind*sex + 
+                after_interv_ind*devices + 
+                after_interv_ind*P_Score, 
+              random = ~ 1 | pseudo_ID,
+              data = df_A,
+              method = "REML")
+summary(model3)
 
+
+model4 <- lme(fixed = Total.ST.min ~ after_interv_ind*sex + 
+                after_interv_ind*devices + after_interv_ind*P_Score, 
+              random = ~ 1 | pseudo_ID,
+              data = df_B,
+              method = "REML")
+summary(model4)
 # Generate Table 1
 new_column_names <- c("pseudo_ID","Total Screen Time (mins)","Pickups",
                       "Treatment","Age","Sex","Apps","Devices",
@@ -172,8 +186,8 @@ colnames(df_table1) <- new_column_names
 
 df_table1 <- df_table1 %>%
   mutate(Treatment = recode(Treatment,
-                      "A" = "Treatment A", 
-                      "B" = "Treatment B"))
+                            "A" = "Treatment A", 
+                            "B" = "Treatment B"))
 
 
 
@@ -273,5 +287,70 @@ p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) * 2
 exp(coef(m1))
 exp(confint(m1))
 
+library(ggplot2)
+#spaghetti plot
+ggplot(df_imputed, aes(x=Date, y=Total.ST.min)) +
+  geom_vline(xintercept = df_A$Date[308], col = "red", alpha = 5) +
+  geom_line(aes(group = as.factor(pseudo_ID)), alpha = 0.5) +
+  geom_smooth() +
+  theme_minimal() +
+  labs(x="Date", 
+       y="Total.ST/min")
 
-#------------------------------------------------------------------------------
+ggplot(df_imputed, aes(x=Date, y=Pickups)) +
+  geom_vline(xintercept = df_A$Date[308], col = "red", alpha = 5) +
+  geom_line(aes(group = as.factor(pseudo_ID)), alpha = 0.5) +
+  geom_smooth() +
+  theme_minimal() +
+  labs(x="Date", 
+       y="Pickups")
+
+
+#spaghetti plot Date by Total.ST.min in A
+ggplot(df_A, aes(x=Date, y=Total.ST.min)) +
+  geom_vline(xintercept = df_A$Date[308], col = "red", alpha = 5) +
+  geom_line(aes(group = as.factor(pseudo_ID)), alpha = 0.5) +
+  geom_smooth() +
+  theme_minimal() +
+  labs(x="Date", 
+       y="Total.ST/min")
+
+#spaghetti plot Date by Pickups in A
+ggplot(df_A, aes(x=Date, y=Pickups)) +
+  geom_vline(xintercept = df_A$Date[308], col = "red", alpha = 5) +
+  geom_line(aes(group = as.factor(pseudo_ID)), alpha = 0.5) +
+  geom_smooth() +
+  theme_minimal() +
+  labs(x="Date", 
+       y="Pickups")
+  
+#spaghetti plot Date by Total.ST.min in B
+ggplot(df_B, aes(x=Date, y=Total.ST.min)) +
+  geom_vline(xintercept = df_A$Date[308], col = "red", alpha = 5) +
+  geom_line(aes(group = as.factor(pseudo_ID)), alpha = 0.5) +
+  geom_smooth() +
+  theme_minimal() +
+  labs(x="Date", 
+       y="Total.ST/min")
+
+#spaghetti plot Date by Pickups in B
+ggplot(df_B, aes(x=Date, y=Pickups)) +
+  geom_vline(xintercept = df_A$Date[308], col = "red", alpha = 5) +
+  geom_line(aes(group = as.factor(pseudo_ID)), alpha = 0.5) +
+  geom_smooth() +
+  theme_minimal() +
+  labs(x="Date", 
+       y="Pickups")
+
+# boxplot
+g <-
+  ggplot(df_imputed, aes(x = Treatment, y = total_compliance,
+                   color = Treatment)) +
+  labs(x = "Intervention", y = "Total Compliance") +
+  scale_color_brewer(palette = "Dark2", guide = "none")
+
+g + geom_violin(aes(fill = Treatment), linewidth = 1, alpha = .5) +
+  geom_boxplot(outlier.alpha = 0, coef = 0,
+               color = "gray40", width = .1) +
+  scale_fill_brewer(palette = "Dark2", guide = "none") +
+  coord_flip()
